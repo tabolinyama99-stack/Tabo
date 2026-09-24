@@ -1,0 +1,20 @@
+{
+  "name": "college-management-system",
+  "version": "1.0.0",
+  "description": "College Management System with a Super Admin who can edit branding, modules, custom fields and every record.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node test/smoke.js",
+    "seed": "node scripts/seed.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "express": "^5.2.1"
+  }
+}
