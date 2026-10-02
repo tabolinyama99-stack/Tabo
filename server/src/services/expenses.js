@@ -1,9 +1,9 @@
 // Expenses paid directly from bank/cash, with approval workflow and receipt attachments.
-import { toCents, fromCents, percentOf } from '../lib/money.js';
+import { toCents, fromCents, percentOf, formatK } from '../lib/money.js';
 import { badRequest, conflict, notFound, forbidden } from '../lib/errors.js';
 import { nextNumber } from '../lib/numbering.js';
 import { audit, diff } from '../lib/audit.js';
-import { createJournal, reverseJournal, checkLimit, can, assertPeriodOpen, withinLimit } from './ledger.js';
+import { createJournal, reverseJournal, checkLimit, can, assertPeriodOpen, withinLimit, accountBalance } from './ledger.js';
 import { resolveTaxRate, splitInclusive } from './tax.js';
 
 export async function getExpense(db, companyId, id) {
@@ -111,8 +111,13 @@ export async function postExpense(db, ctx, id, { approving = false } = {}) {
   await assertPeriodOpen(db, ctx.companyId, e.expense_date);
   const lines = [{ account_id: e.account_id, debit: e.amount, supplier_id: e.supplier_id, description: e.description || e.payee_name || e.number, branch_id: e.branch_id, department_id: e.department_id }];
   if (toCents(e.tax_amount) > 0n) {
-    const { rows: [t] } = await db.query('SELECT purchase_account_id FROM tax_rates WHERE id=$1', [e.tax_rate_id]);
+    const { rows: [t] } = await db.query('SELECT name, purchase_account_id FROM tax_rates WHERE id=$1', [e.tax_rate_id]);
+    if (!t?.purchase_account_id) throw badRequest(`The tax rate on this expense has no input tax account configured. Set it in Admin Center → Tax.`);
     lines.push({ account_id: t.purchase_account_id, debit: e.tax_amount, tax_rate_id: e.tax_rate_id, description: 'Input VAT' });
+  }
+  if (!ctx.settings?.accounting?.allow_negative_cash) {
+    const bal = toCents(await accountBalance(db, ctx.companyId, e.payment_account_id));
+    if (bal < toCents(e.total)) throw conflict(`Insufficient funds in ${e.payment_account_name || 'the payment account'}: balance ${formatK(fromCents(bal))}. Record the deposit first or enable negative balances in Admin Center → Accounting.`);
   }
   lines.push({ account_id: e.payment_account_id, credit: e.total, description: `${e.number} ${e.payee_name || e.supplier_name || ''}`.trim() });
   const je = await createJournal(db, ctx, {

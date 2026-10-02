@@ -300,6 +300,12 @@ describe('Permissions are enforced by the API', () => {
   it('an approver posts the pending expense', async () => {
     // fund cash first
     await admin.post('/api/bank-transactions').send({ kind: 'TRANSFER', bank_account_id: await accountId(cid, 'BANK'), to_account_id: await accountId(cid, 'CASH'), amount: '1000', date: today() });
+    const short = await admin.post(`/api/expenses/${ids.pendingExpense}/approve`).send({});
+    assert.equal(short.status, 409, 'cash cannot be overdrawn by an expense');
+    assert.match(short.body.error.message, /Insufficient funds/);
+    const top = await admin.post('/api/journals').send({ date: today(), description: 'Owner capital into cash', action: 'post',
+      lines: [{ account_id: await accountId(cid, 'CASH'), debit: '5000' }, { account_id: await accountId(cid, 'CAPITAL'), credit: '5000' }] });
+    assert.equal(top.status, 201, JSON.stringify(top.body));
     const r = await admin.post(`/api/expenses/${ids.pendingExpense}/approve`).send({});
     assert.equal(r.status, 200, JSON.stringify(r.body));
     assert.equal(r.body.status, 'POSTED');
