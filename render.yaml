@@ -1,14 +1,20 @@
-# Render.com blueprint: managed PostgreSQL + Docker web service with a persistent disk.
+# Render.com Blueprint: managed PostgreSQL + Docker web service (HTTPS, health check, persistent disk).
+# Deploy: Render Dashboard → New → Blueprint → choose this repository. You will be asked for the
+# values marked `sync: false` (Super Admin login, company name, optional Anthropic API key).
 databases:
   - name: tael-books-db
     plan: basic-256mb
+    region: frankfurt
+    postgresMajorVersion: "16"
     databaseName: tael_books
     user: tael
+    ipAllowList: []          # only reachable from services inside Render
 services:
   - type: web
     name: tael-books
     runtime: docker
-    plan: starter
+    plan: starter            # a paid plan is required for the persistent disk (uploads, logos, backups)
+    region: frankfurt
     healthCheckPath: /healthz
     disk: { name: tael-data, mountPath: /data, sizeGB: 5 }
     envVars:
@@ -20,6 +26,12 @@ services:
         value: production
       - key: TRUST_PROXY
         value: "1"
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: JOBS_ENABLED
+        value: "true"
+      - key: SEED_DEMO
+        value: "false"
       - key: SUPER_ADMIN_EMAIL
         sync: false
       - key: SUPER_ADMIN_PASSWORD
