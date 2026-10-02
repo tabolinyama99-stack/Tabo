@@ -77,7 +77,8 @@ r.get('/public-branding', asyncH(async (req, res) => {
   if (!c) return res.json({ name: 'TAEL Books', branding: DEFAULT_SETTINGS.branding, has_logo: false });
   const b = mergeSettings(DEFAULT_SETTINGS, c.settings).branding;
   res.json({ company_id: c.id, name: c.name, branding: { primary_color: b.primary_color, secondary_color: b.secondary_color, login_title: b.login_title, login_tagline: b.login_tagline, theme: b.theme },
-    has_logo: !!b.logo_document_id, has_dark_logo: !!b.logo_dark_document_id, has_favicon: !!b.favicon_document_id });
+    has_logo: !!(b.logo_document_id || b.logo_light_document_id), logo_slot: b.logo_light_document_id ? 'logo_light' : 'logo', has_dark_logo: !!b.logo_dark_document_id,
+    logo_version: b.logo_light_document_id || b.logo_document_id || null, has_favicon: !!b.favicon_document_id, favicon_version: b.favicon_document_id || null });
 }));
 
 r.use(authenticate);

@@ -29,7 +29,9 @@ const NAV = [
 function Logo({ me }) {
   const b = me.settings?.branding || {};
   const dark = document.documentElement.dataset.theme === 'dark';
-  const id = dark && b.logo_dark_document_id ? 'logo_dark' : b.logo_document_id ? 'logo' : null;
+  // Dark mode prefers the dark-background logo; light mode prefers the light-background logo; both fall back to the main logo.
+  const order = dark ? ['logo_dark', 'logo', 'logo_light'] : ['logo_light', 'logo', 'logo_dark'];
+  const id = order.find((k) => b[`${k}_document_id`]) || null;
   if (id) return <img src={`/api/public/branding/${me.company.id}/${id}?v=${b[`${id}_document_id`]}`} alt={me.company.name} className="brand-logo" />;
   return <div className="brand-mark"><svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="var(--brand)" /><path d="M8 10h16M16 10v13" stroke="var(--on-brand)" strokeWidth="3.2" strokeLinecap="round" /><circle cx="23.5" cy="22.5" r="2.5" fill="var(--accent)" /></svg><span>{me.company.name}</span></div>;
 }

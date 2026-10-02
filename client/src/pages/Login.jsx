@@ -10,7 +10,7 @@ export default function Login() {
   const [email, setEmail] = useState(''); const [password, setPassword] = useState('');
   const [err, setErr] = useState(null); const [busy, setBusy] = useState(false);
   const nav = useNavigate(); const loc = useLocation();
-  useEffect(() => { api.get('/auth/public-branding').then((b) => { setBrand(b); applyBranding(b.branding, b.company_id, b.name); }).catch(() => {}); }, []);
+  useEffect(() => { api.get('/auth/public-branding').then((b) => { setBrand(b); applyBranding({ ...b.branding, favicon_document_id: b.favicon_version }, b.company_id, b.name); }).catch(() => {}); }, []);
   if (me) return <Navigate to={loc.state?.from || '/'} replace />;
   const submit = async (e) => {
     e.preventDefault(); setErr(null); setBusy(true);
@@ -19,7 +19,7 @@ export default function Login() {
   };
   return <div className="login">
     <div className="login-art">
-      <div>{brand?.has_logo ? <img src={`/api/public/branding/${brand.company_id}/logo`} alt={brand.name} style={{ maxHeight: 56, background: '#fff', padding: 8, borderRadius: 8 }} /> : <strong style={{ fontSize: 18 }}>{brand?.name || 'TAEL Books'}</strong>}</div>
+      <div>{brand?.has_logo ? <img src={`/api/public/branding/${brand.company_id}/${brand.logo_slot || 'logo'}?v=${brand.logo_version || ''}`} alt={brand.name} style={{ maxHeight: 56, background: '#fff', padding: 8, borderRadius: 8 }} /> : <strong style={{ fontSize: 18 }}>{brand?.name || 'TAEL Books'}</strong>}</div>
       <div><h1>{brand?.branding?.login_title || 'Welcome back'}</h1><p>{brand?.branding?.login_tagline || 'Accounting for Zambian businesses'}</p></div>
       <div className="login-rules" aria-hidden="true"><div /><div /><div /><div className="double" /></div>
       <p className="t-small" style={{ color: 'inherit', opacity: 0.8 }}>TAEL Books · double-entry accounting in Zambian Kwacha</p>

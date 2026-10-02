@@ -5,13 +5,22 @@ import { readDocument } from './storage.js';
 
 const fmtDate = (v) => (v ? String(v).slice(0, 10).split('-').reverse().join('/') : '');
 
+/** Logo as PNG/JPEG for PDFKit. SVG, WebP and GIF logos are converted to PNG so they appear on PDFs too. */
+export async function pdfLogo(db, companyId, branding = {}) {
+  const id = branding.logo_document_id || branding.logo_light_document_id;
+  if (!id) return null;
+  try {
+    const { doc, data } = await readDocument(db, companyId, id);
+    if (['image/png', 'image/jpeg'].includes(doc.mime_type)) return data;
+    const sharp = (await import('sharp')).default;
+    return await sharp(data, { density: 300 }).resize({ height: 240, withoutEnlargement: false, fit: 'inside' }).png().toBuffer();
+  } catch { return null; /* logo missing or unreadable: fall back to the company name */ }
+}
+
 export async function companyBranding(db, companyId) {
   const { rows: [c] } = await db.query('SELECT * FROM companies WHERE id=$1', [companyId]);
   const b = c.settings?.branding || {};
-  let logo = null;
-  if (b.logo_document_id) {
-    try { const { doc, data } = await readDocument(db, companyId, b.logo_document_id); if (['image/png', 'image/jpeg'].includes(doc.mime_type)) logo = data; } catch { /* logo missing */ }
-  }
+  const logo = await pdfLogo(db, companyId, b);
   return { company: c, settings: c.settings || {}, logo, color: /^#[0-9a-f]{6}$/i.test(b.primary_color || '') ? b.primary_color : '#0f5c4a' };
 }
 

@@ -99,7 +99,7 @@ r.put('/settings/:section', asyncH(async (req, res) => {
     if (/threshold$/.test(k) && v !== null && v !== '' && !/^\d+(\.\d{1,2})?$/.test(String(v))) throw badRequest(`${k} must be an amount.`);
     clean[k] = v;
   }
-  if (section === 'branding') for (const k of ['logo_document_id', 'logo_dark_document_id', 'favicon_document_id']) delete clean[k]; // use upload endpoints
+  if (section === 'branding') for (const k of ['logo_document_id', 'logo_light_document_id', 'logo_dark_document_id', 'favicon_document_id']) delete clean[k]; // use upload endpoints
   if (section === 'dashboard' && clean.widgets && !Array.isArray(clean.widgets)) throw badRequest('widgets must be a list.');
   if (section === 'security') {
     if (clean.password_min_length !== undefined && (clean.password_min_length < 8 || clean.password_min_length > 64)) throw badRequest('Minimum password length must be between 8 and 64.');
@@ -124,7 +124,7 @@ r.put('/secrets/:key', asyncH(async (req, res) => {
 }));
 
 // ───────────── Branding uploads ─────────────
-const SLOTS = { logo: 'logo_document_id', logo_dark: 'logo_dark_document_id', favicon: 'favicon_document_id' };
+const SLOTS = { logo: 'logo_document_id', logo_light: 'logo_light_document_id', logo_dark: 'logo_dark_document_id', favicon: 'favicon_document_id' };
 r.post('/branding/:slot', need('manage_company'), upload.single('file'), asyncH(async (req, res) => {
   const key = SLOTS[req.params.slot];
   if (!key) throw badRequest('Unknown branding slot.');

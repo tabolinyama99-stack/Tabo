@@ -81,8 +81,9 @@ export function Branding() {
   const state = useApi('/admin/settings');
   return <>
     <Loadable state={state}>{(s) => <Card title="Logo & favicon"><div className="form-grid">
-      <LogoSlot slot="logo" label="Logo (light backgrounds)" hint="PNG or JPG recommended (also used on invoices & PDF reports). SVG is shown in the app only." docId={s.branding.logo_document_id} />
-      <LogoSlot slot="logo_dark" label="Logo (dark mode)" hint="Optional. Used in the app when dark mode is on." docId={s.branding.logo_dark_document_id} />
+      <LogoSlot slot="logo" label="Main logo" hint="Used everywhere by default, including invoices, receipts, quotations and PDF reports. PNG/JPG recommended; SVG and WebP are converted automatically for PDFs." docId={s.branding.logo_document_id} />
+      <LogoSlot slot="logo_light" label="Light-mode logo" hint="Optional. Shown on light backgrounds (login page and navigation in light mode). Falls back to the main logo." docId={s.branding.logo_light_document_id} />
+      <LogoSlot slot="logo_dark" label="Dark-mode logo" hint="Optional. A light-coloured version shown on dark backgrounds when dark mode is on. Falls back to the main logo." docId={s.branding.logo_dark_document_id} />
       <LogoSlot slot="favicon" label="Favicon" hint="Square PNG, ICO or SVG, at least 32×32." docId={s.branding.favicon_document_id} />
     </div></Card>}</Loadable>
     <SettingsForm section="branding" title="Brand colours, theme & login page" description="Colours apply across the app, invoices, receipts and reports. Choose colours dark enough for white text (the app checks contrast automatically for button text)."

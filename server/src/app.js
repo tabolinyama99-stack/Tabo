@@ -46,7 +46,7 @@ export function createApp() {
   // Public branding assets for the login page (logo/favicon only)
   api.get('/public/branding/:companyId/:slot', async (req, res, next) => {
     try {
-      const key = { logo: 'logo_document_id', logo_dark: 'logo_dark_document_id', favicon: 'favicon_document_id' }[req.params.slot];
+      const key = { logo: 'logo_document_id', logo_light: 'logo_light_document_id', logo_dark: 'logo_dark_document_id', favicon: 'favicon_document_id' }[req.params.slot];
       const { rows: [c] } = await pool.query('SELECT settings FROM companies WHERE id=$1 AND is_active', [Number(req.params.companyId) || 0]);
       const id = c?.settings?.branding?.[key];
       if (!id) return res.status(404).end();

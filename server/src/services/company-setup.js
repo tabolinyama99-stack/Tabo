@@ -63,7 +63,7 @@ export const DEFAULT_COA = [
 export const DEFAULT_SETTINGS = {
   branding: {
     primary_color: '#0f5c4a', secondary_color: '#9a5520', theme: 'system',
-    logo_document_id: null, logo_dark_document_id: null, favicon_document_id: null,
+    logo_document_id: null, logo_light_document_id: null, logo_dark_document_id: null, favicon_document_id: null,
     login_title: 'Welcome back', login_tagline: 'Accounting for Zambian businesses',
     show_logo_on_documents: true, show_logo_on_reports: true,
   },
