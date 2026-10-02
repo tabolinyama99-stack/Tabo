@@ -1,0 +1,32 @@
+# Render.com blueprint: managed PostgreSQL + Docker web service with a persistent disk.
+databases:
+  - name: tael-books-db
+    plan: basic-256mb
+    databaseName: tael_books
+    user: tael
+services:
+  - type: web
+    name: tael-books
+    runtime: docker
+    plan: starter
+    healthCheckPath: /healthz
+    disk: { name: tael-data, mountPath: /data, sizeGB: 5 }
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase: { name: tael-books-db, property: connectionString }
+      - key: APP_ENCRYPTION_KEY
+        generateValue: true
+      - key: NODE_ENV
+        value: production
+      - key: TRUST_PROXY
+        value: "1"
+      - key: SUPER_ADMIN_EMAIL
+        sync: false
+      - key: SUPER_ADMIN_PASSWORD
+        sync: false
+      - key: SUPER_ADMIN_NAME
+        sync: false
+      - key: COMPANY_NAME
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false

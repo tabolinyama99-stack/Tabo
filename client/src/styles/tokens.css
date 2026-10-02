@@ -1,0 +1,67 @@
+/* TAEL Books design tokens — mirrored in the TAEL Books Design System artifact.
+   --brand / --accent are overridden at runtime from Admin Center → Branding. */
+:root, [data-theme="light"] {
+  --surface-000: #f5f6f3;   /* page */
+  --surface-100: #ffffff;   /* cards, tables */
+  --surface-200: #eef1ec;   /* sunken: table header, hover, inputs disabled */
+  --surface-300: #e3e8e3;   /* selected row */
+  --ink: #16201b;
+  --ink-muted: #4f5d56;
+  --ink-faint: #5e6b64;
+  --border: #d6ddd8;
+  --border-strong: #87938c;
+  --brand: #0f5c4a;
+  --brand-strong: #0b4638;
+  --brand-tint: #e2efe9;
+  --on-brand: #ffffff;
+  --accent: #9a5520;
+  --accent-tint: #f6e9dd;
+  --positive: #1d7039;
+  --positive-tint: #e3f2e7;
+  --negative: #b42318;
+  --negative-tint: #fce8e6;
+  --warning: #8a5800;
+  --warning-tint: #fbf0d6;
+  --info: #1d5fa8;
+  --info-tint: #e4edf9;
+  --chart-1: #0f5c4a; --chart-2: #c2702f; --chart-3: #3f74b8; --chart-4: #b08900; --chart-5: #6b5b95; --chart-6: #8a968f;
+  --shadow-1: 0 1px 2px rgba(16, 24, 20, 0.06), 0 1px 1px rgba(16, 24, 20, 0.04);
+  --shadow-2: 0 8px 24px rgba(16, 24, 20, 0.12), 0 2px 6px rgba(16, 24, 20, 0.06);
+  color-scheme: light;
+}
+[data-theme="dark"] {
+  --surface-000: #0e1311;
+  --surface-100: #151c19;
+  --surface-200: #1b2420;
+  --surface-300: #23302a;
+  --ink: #e6ece8;
+  --ink-muted: #a5b2ab;
+  --ink-faint: #8d9a93;
+  --border: #2c3833;
+  --border-strong: #5d6c64;
+  --brand: #4cc09b;
+  --brand-strong: #6fd2b0;
+  --brand-tint: #163a30;
+  --on-brand: #06140f;
+  --accent: #e3995f;
+  --accent-tint: #3a2617;
+  --positive: #5fcf89;
+  --positive-tint: #15301f;
+  --negative: #f7786d;
+  --negative-tint: #3b1714;
+  --warning: #eab24a;
+  --warning-tint: #3a2c0f;
+  --info: #78adef;
+  --info-tint: #14263b;
+  --chart-1: #4cc09b; --chart-2: #e3995f; --chart-3: #78adef; --chart-4: #e3c14d; --chart-5: #a99bd6; --chart-6: #7f8c86;
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-2: 0 10px 30px rgba(0, 0, 0, 0.55);
+  color-scheme: dark;
+}
+:root {
+  --font-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 24px; --space-6: 32px; --space-7: 48px;
+  --radius-sm: 4px; --radius-md: 6px; --radius-lg: 10px; --radius-pill: 999px;
+  --sidebar-w: 248px; --topbar-h: 56px;
+}

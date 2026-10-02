@@ -1,0 +1,29 @@
+# Local or single-server deployment: PostgreSQL + TAEL Books.
+# 1. cp .env.example .env  and fill in the values
+# 2. docker compose up -d --build
+# 3. open http://localhost:4000 (put a TLS proxy such as Caddy in front for production — see deploy/Caddyfile)
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: tael_books
+      POSTGRES_USER: tael
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tael -d tael_books"]
+      interval: 5s
+      retries: 10
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on: { db: { condition: service_healthy } }
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://tael:${POSTGRES_PASSWORD}@db:5432/tael_books
+    ports: ["4000:4000"]
+    volumes: [appdata:/data]
+volumes:
+  pgdata:
+  appdata:

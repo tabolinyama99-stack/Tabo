@@ -1,0 +1,17 @@
+# Production overlay with Caddy for HTTPS:
+#   docker compose -f docker-compose.yml -f deploy/docker-compose.https.yml up -d --build
+services:
+  app:
+    ports: !reset []
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on: [app]
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+volumes:
+  caddy_data:
+  caddy_config:
