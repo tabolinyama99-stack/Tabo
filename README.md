@@ -57,7 +57,11 @@ The app is one Docker image (API + web client) plus PostgreSQL and a persistent 
 3. `cp .env.example .env` and fill it in (`COOKIE_SECURE=true`, `TRUST_PROXY=1`).
 4. `docker compose -f docker-compose.yml -f deploy/docker-compose.https.yml up -d --build`
 
-**Option B — Render.com**: create a Blueprint from this repository (`render.yaml` provisions PostgreSQL, the web service, a disk and a generated encryption key). Set `SUPER_ADMIN_EMAIL`, `SUPER_ADMIN_PASSWORD`, `SUPER_ADMIN_NAME`, `COMPANY_NAME` and optionally `ANTHROPIC_API_KEY` when prompted.
+**Option B — Render.com (recommended)**: `render.yaml` provisions PostgreSQL 16, the Docker web service with HTTPS, a 5 GB persistent disk for uploads/logos/backups, a health check and a generated encryption key, all in the Frankfurt region.
+1. Render Dashboard → **New → Blueprint** → connect GitHub and pick this repository (and the branch to deploy).
+2. Enter the prompted values: `SUPER_ADMIN_EMAIL`, `SUPER_ADMIN_PASSWORD` (10+ characters), `SUPER_ADMIN_NAME`, `COMPANY_NAME`, and optionally `ANTHROPIC_API_KEY` (it can also be added later in Admin Center → AI settings).
+3. **Apply**. The first deploy runs migrations and creates the Super Admin and company. Then open the service URL (`https://tael-books-….onrender.com`), sign in, and delete `SUPER_ADMIN_PASSWORD` from the service's Environment tab.
+4. Optional: add your own domain under the service's **Settings → Custom Domains** (Render issues the TLS certificate).
 
 **Option C — Railway / Fly.io / Azure / AWS**: deploy the `Dockerfile`, attach PostgreSQL, set the environment variables below, mount a volume at `/data`, health check `GET /healthz`.
 
