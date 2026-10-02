@@ -1,0 +1,11 @@
+# Automatic HTTPS (Let's Encrypt) in front of TAEL Books.
+# Replace books.example.com with your domain and point its DNS A record at this server.
+books.example.com {
+	encode gzip
+	reverse_proxy app:4000
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+	request_body { max_size 20MB }
+}

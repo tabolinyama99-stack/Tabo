@@ -1,0 +1,50 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_USER: tael, POSTGRES_PASSWORD: tael, POSTGRES_DB: tael_books_test }
+        ports: ["5432:5432"]
+        options: --health-cmd pg_isready --health-interval 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: sudo apt-get update && sudo apt-get install -y tesseract-ocr poppler-utils postgresql-client
+      - run: npm --prefix server ci && npm --prefix client ci
+      - run: npm --prefix client run build
+      - run: npm --prefix server test
+        env: { TEST_DATABASE_URL: "postgres://tael:tael@localhost:5432/tael_books_test" }
+
+  # Builds the production image and boots it against PostgreSQL, exactly as Render runs it.
+  docker:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_USER: tael, POSTGRES_PASSWORD: tael, POSTGRES_DB: tael_books }
+        ports: ["5432:5432"]
+        options: --health-cmd pg_isready --health-interval 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t tael-books .
+      - name: Boot the image and check health, login and backups
+        run: |
+          docker run -d --name app --network host \
+            -e NODE_ENV=production -e PORT=4000 -e COOKIE_SECURE=false \
+            -e DATABASE_URL=postgres://tael:tael@localhost:5432/tael_books \
+            -e APP_ENCRYPTION_KEY=ci-only-key-0123456789-0123456789-0123456789 \
+            -e SUPER_ADMIN_EMAIL=ci@example.com -e SUPER_ADMIN_PASSWORD=Ci-Check-2026! -e COMPANY_NAME="CI Co" tael-books
+          for i in $(seq 1 30); do curl -sf localhost:4000/healthz && break; sleep 2; done
+          curl -sf localhost:4000/healthz
+          curl -sf localhost:4000/ | grep -q '<div id="root">'
+          curl -sf -c jar -H 'content-type: application/json' -d '{"email":"ci@example.com","password":"Ci-Check-2026!"}' localhost:4000/api/auth/login > login.json
+          CSRF=$(node -e "console.log(require('./login.json').csrf_token)")
+          curl -sf -b jar -H "x-csrf-token: $CSRF" -X POST localhost:4000/api/admin/backups/database | tee backup.json
+          docker exec app pg_dump --version
+          docker exec app tesseract --version | head -1
+      - if: always()
+        run: docker logs app || true

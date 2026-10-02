@@ -1,20 +1,18 @@
 {
-  "name": "college-management-system",
+  "name": "tael-books",
   "version": "1.0.0",
-  "description": "College Management System with a Super Admin who can edit branding, modules, custom fields and every record.",
-  "main": "server.js",
+  "private": true,
+  "description": "TAEL Books — multi-company double-entry accounting for Zambian businesses, with an AI accounting assistant.",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node --watch server.js",
-    "test": "node test/smoke.js",
-    "seed": "node scripts/seed.js"
+    "install:all": "npm --prefix server ci && npm --prefix client ci",
+    "build": "npm --prefix client run build",
+    "start": "npm --prefix server start",
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client run dev",
+    "migrate": "npm --prefix server run migrate",
+    "seed:demo": "npm --prefix server run seed:demo",
+    "create-super-admin": "npm --prefix server run create-super-admin",
+    "test": "npm --prefix server test"
   },
-  "engines": {
-    "node": ">=18"
-  },
-  "license": "MIT",
-  "dependencies": {
-    "better-sqlite3": "^13.0.3",
-    "express": "^5.2.1"
-  }
+  "engines": { "node": ">=20" }
 }

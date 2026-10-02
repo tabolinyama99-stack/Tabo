@@ -1,5 +1,22 @@
+# dependencies & build output
 node_modules/
+client/dist/
+coverage/
+
+# secrets — never commit
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
+
+# runtime data
+storage/
 data/
 uploads/
-.env
+backups/
 *.log
+*.dump
+.DS_Store
