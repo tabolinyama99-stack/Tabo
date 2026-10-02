@@ -42,8 +42,6 @@ describe('Claude provider (mocked)', () => {
     assert.ok(calls[0].system.includes('MUST come from a tool result'));
     assert.ok(calls[0].tools.some((t) => t.name === 'prepare_transaction_draft'));
     assert.equal(calls[0].model, 'claude-opus-5-5');
-    assert.equal(calls[0].fallbacks, 'default');
-    assert.equal(calls[0].output_config.effort, 'medium');
     assert.ok(calls[0].max_tokens >= 16000);
     // the assistant turn (with its tool_use block) is sent back unchanged before the tool result
     assert.equal(calls[1].messages.at(-2).content[0].type, 'tool_use');

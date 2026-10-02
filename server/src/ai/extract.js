@@ -5,9 +5,9 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { pool, tx } from '../db/pool.js';
-import { aiClient, createMessage, textOf, stopProblem } from './provider.js';
+import { aiClient } from './provider.js';
 import { resolveAccountByHint } from './tools.js';
-import { toCents, fromCents } from './util.js';
+import { toCents, fromCents, textOf, stopProblem } from './util.js';
 import { getSystemAccount } from '../services/ledger.js';
 import { createExpense } from '../services/expenses.js';
 import { createPurchaseDoc } from '../services/purchases.js';
@@ -63,7 +63,7 @@ async function claudeExtract(ai, doc, data) {
   const block = doc.mime_type === 'application/pdf'
     ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: data.toString('base64') } }
     : { type: 'image', source: { type: 'base64', media_type: doc.mime_type, data: data.toString('base64') } };
-  const resp = await createMessage(ai, { max_tokens: 8000, messages: [{ role: 'user', content: [block, { type: 'text', text:
+  const resp = await ai.client.messages.create({ model: ai.model, max_tokens: 8000, messages: [{ role: 'user', content: [block, { type: 'text', text:
     'Extract the accounting data from this receipt or invoice (Zambia; currency normally Kwacha). Reply with ONLY a JSON object with keys: vendor, customer, date (YYYY-MM-DD), invoice_number, total (string, 2 decimals, tax inclusive), tax (string VAT amount or null), currency, tpin, description (short), suggested_category (one of: fuel, rent, office supplies, transport, utilities, telephone, repairs, meals, printing, professional fees, advertising, insurance, bank charges, purchases of goods, other), payment_method (cash|bank|mobile_money|credit|unknown), document_type (receipt|invoice), due_date, confidence (0-100). Use null for anything not visible. Do not guess numbers.' }] }] });
   const problem = stopProblem(resp);
   if (problem) throw new Error(problem);

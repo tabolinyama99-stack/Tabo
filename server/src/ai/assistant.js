@@ -3,8 +3,8 @@
 // in an answer comes from a tool result (database), and sources are returned with the answer.
 import { pool } from '../db/pool.js';
 import { TOOLS, runTool, today, monthStart, addMonths, addDays } from './tools.js';
-import { aiClient, createMessage, textOf, stopProblem } from './provider.js';
-import { toCents, fromCents, formatK } from './util.js';
+import { aiClient } from './provider.js';
+import { toCents, fromCents, formatK, textOf, stopProblem } from './util.js';
 import { can } from '../services/ledger.js';
 import { audit } from '../lib/audit.js';
 import { AppError } from '../lib/errors.js';
@@ -176,7 +176,7 @@ async function withClaude(ctx, ai, history, message) {
   const messages = [...history, { role: 'user', content: message }];
   const sources = [], used = []; let draft = null, proposal = null;
   for (let step = 0; step < 6; step++) {
-    const resp = await createMessage(ai, { max_tokens: 16000, system: SYSTEM(ctx), tools, messages });
+    const resp = await ai.client.messages.create({ model: ai.model, max_tokens: 16000, system: SYSTEM(ctx), tools, messages });
     if (resp.stop_reason !== 'tool_use') {
       const answer = stopProblem(resp) || textOf(resp);
       return { answer, sources, used, draft, proposal };

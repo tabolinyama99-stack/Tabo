@@ -2,8 +2,8 @@
 // optionally narrated by Claude (which is given only these figures).
 import { pool } from '../db/pool.js';
 import { profitAndLoss, aging, cashFlow, expenseReport, addMonths } from '../services/reports.js';
-import { toCents, fromCents, formatK } from './util.js';
-import { aiClient, createMessage, textOf, stopProblem } from './provider.js';
+import { toCents, fromCents, formatK, textOf, stopProblem } from './util.js';
+import { aiClient } from './provider.js';
 import { audit } from '../lib/audit.js';
 
 const pct = (a, b) => (toCents(b) === 0n ? null : Number((((Number(a) - Number(b)) / Math.abs(Number(b))) * 100).toFixed(1)));
@@ -56,7 +56,7 @@ export async function analyse(ctx, q = {}) {
     const ai = await aiClient(ctx);
     if (ai) {
       try {
-        const resp = await createMessage(ai, { max_tokens: 8000, messages: [{ role: 'user', content:
+        const resp = await ai.client.messages.create({ model: ai.model, max_tokens: 8000, messages: [{ role: 'user', content:
           `You are a financial analyst for a Zambian business. Write a short plain-English commentary (max 180 words, 3 short paragraphs) on these results for ${from} to ${to}. Use ONLY figures that appear in the data, quoted exactly with K prefix. Do not compute new numbers except simple percentages already given. Use neutral language.\n\nDATA:\n${JSON.stringify({ insights: insights.map((x) => x.text), expense_changes: result.expense_changes.slice(0, 5) })}` }] });
         if (!stopProblem(resp)) { result.narrative = textOf(resp); result.engine = 'claude'; }
       } catch (e) { console.error('[ai] analyst narrative failed:', e.message); }
