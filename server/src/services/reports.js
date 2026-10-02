@@ -235,7 +235,7 @@ export async function aging(db, companyId, side, q = {}) {
     `SELECT d.id, d.number, d.doc_date, d.due_date, d.total, d.${party}_id AS party_id, p.name AS party_name,
        COALESCE((SELECT SUM(pa.amount) FROM payment_allocations pa JOIN payments pm ON pm.id=pa.payment_id
                   WHERE pa.${isAR ? 'sales' : 'purchase'}_document_id=d.id AND pm.status='POSTED' AND pm.payment_date <= $2),0) AS paid,
-       COALESCE((SELECT SUM(n.total) FROM ${t} n WHERE n.related_document_id=d.id AND n.doc_type='${noteType}' AND n.status='APPLIED' AND n.doc_date <= $2),0) AS credited
+       COALESCE((SELECT SUM(n.total) FROM ${t} n WHERE n.related_document_id=d.id AND n.doc_type='${noteType}' AND n.status IN ('POSTED','APPLIED') AND n.doc_date <= $2),0) AS credited
        FROM ${t} d JOIN ${party}s p ON p.id=d.${party}_id
       WHERE d.company_id=$1 AND d.doc_type='${docType}' AND d.status NOT IN ('DRAFT','CANCELLED','PENDING_APPROVAL') AND d.doc_date <= $2
         ${q[`${party}_id`] ? `AND d.${party}_id = ${intId(q[`${party}_id`])}` : ''}`, [companyId, asOf]);
@@ -250,33 +250,14 @@ export async function aging(db, companyId, side, q = {}) {
     const p = parties.get(d.party_id); p[b[0]] += out; p.total += out;
     detail.push({ number: d.number, party: d.party_name, doc_date: d.doc_date, due_date: d.due_date, days_overdue: Math.max(over, 0), bucket: b[1], outstanding: M(out), document_id: d.id });
   }
-  // Reconcile to the sub-ledger: receipts/payments not yet allocated, unapplied credit/debit notes and
-  // party-tagged journals show as "Unapplied", so the aging total always equals the control account.
-  const ctrl = await getSystemAccount(db, companyId, side);
-  const partyFilter = q[`${party}_id`] ? `AND l.${party}_id = ${intId(q[`${party}_id`])}` : '';
-  const { rows: subs } = await db.query(
-    `SELECT l.${party}_id AS party_id, p.name AS party_name, SUM(${isAR ? 'l.debit - l.credit' : 'l.credit - l.debit'})::numeric(18,2) AS bal
-       FROM ledger l LEFT JOIN ${party}s p ON p.id=l.${party}_id
-      WHERE l.company_id=$1 AND l.account_id=$2 AND l.entry_date <= $3 ${partyFilter}
-      GROUP BY l.${party}_id, p.name`, [companyId, ctrl.id, asOf]);
-  for (const s of subs) {
-    const key = s.party_id ?? 0;
-    if (!parties.has(key)) parties.set(key, { party: s.party_name || `Unassigned (no ${party})`, party_id: s.party_id, ...Object.fromEntries(BUCKETS.map(([k]) => [k, 0n])), total: 0n });
-    const p = parties.get(key);
-    const diff = toCents(s.bal) - p.total;
-    if (diff !== 0n) { p.unapplied = (p.unapplied || 0n) + diff; p.total += diff; }
-  }
-  for (const [key, p] of parties) if (p.total === 0n && !BUCKETS.some(([k]) => p[k] !== 0n)) parties.delete(key);
-  const hasUnapplied = [...parties.values()].some((p) => p.unapplied);
-  const totals = Object.fromEntries([...BUCKETS.map(([k]) => [k, 0n]), ...(hasUnapplied ? [['unapplied', 0n]] : []), ['total', 0n]]);
+  const totals = Object.fromEntries([...BUCKETS.map(([k]) => [k, 0n]), ['total', 0n]]);
   const rows = [...parties.values()].sort((a, b) => (b.total > a.total ? 1 : -1)).map((p) => {
-    for (const k of Object.keys(totals)) totals[k] += p[k] || 0n;
+    for (const k of Object.keys(totals)) totals[k] += p[k];
     return { party_id: p.party_id, party: p.party, ...Object.fromEntries(Object.keys(totals).map((k) => [k, p[k] ? M(p[k]) : null])) };
   });
   rows.push({ _style: 'total', party: 'Total', ...Object.fromEntries(Object.entries(totals).map(([k, v]) => [k, M(v)])) });
   return { title: isAR ? 'Accounts Receivable Aging' : 'Accounts Payable Aging', subtitle: `As at ${asOf} (days past due date)`, as_of: asOf,
-    columns: [col('party', isAR ? 'Customer' : 'Supplier'), ...BUCKETS.map(([k, l]) => col(k, l, 'money')),
-      ...(hasUnapplied ? [col('unapplied', isAR ? 'Unapplied credits' : 'Unapplied payments', 'money')] : []), col('total', 'Total', 'money')], rows,
+    columns: [col('party', isAR ? 'Customer' : 'Supplier'), ...BUCKETS.map(([k, l]) => col(k, l, 'money')), col('total', 'Total', 'money')], rows,
     detail: detail.sort((a, b) => b.days_overdue - a.days_overdue), totals: Object.fromEntries(Object.entries(totals).map(([k, v]) => [k, M(v)])) };
 }
 
