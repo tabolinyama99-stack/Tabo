@@ -30,7 +30,7 @@ export const config = {
   maxUploadMb: Number(process.env.MAX_UPLOAD_MB || 15),
   appUrl: process.env.APP_URL || 'http://localhost:4000',
   anthropicApiKey: process.env.ANTHROPIC_API_KEY || '',
-  aiModel: process.env.AI_MODEL || 'claude-sonnet-5-5',
+  aiModel: process.env.AI_MODEL || 'claude-opus-5-5',
   jobsEnabled: process.env.JOBS_ENABLED ? process.env.JOBS_ENABLED === 'true' : !isTest,
   logLevel: process.env.LOG_LEVEL || (isProd ? 'info' : 'debug'),
   corsOrigin: process.env.CORS_ORIGIN || '',

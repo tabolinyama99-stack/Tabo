@@ -168,7 +168,7 @@ export function AISettings() {
         <Button variant="primary" busy={busy} disabled={!key} onClick={async () => { if (await run(() => api.put('/admin/secrets/anthropic_api_key', { value: key, scope }), 'Key saved.')) { setKey(''); state.reload(); status.reload(); } }}>Save key</Button></div>
     </Card>
     <SettingsForm section="ai" title="AI behaviour" fields={[{ key: 'enabled', label: 'Enable the AI assistant', type: 'bool' }, { key: 'assistant_name', label: 'Assistant name' },
-      { key: 'model', label: 'Model (leave blank for the default)', hint: 'e.g. claude-sonnet-5-5 (default) or claude-opus-5-5 — any model your key has access to.' },
+      { key: 'model', label: 'Model (leave blank for the default)', hint: 'e.g. claude-opus-5-5 (default) or claude-sonnet-5-5 (lower cost) — any model your key has access to.' },
       { key: 'allow_transaction_drafts', label: 'Allow AI to prepare draft transactions', type: 'bool' }, { key: 'auto_extract_documents', label: 'Allow AI receipt / invoice reading', type: 'bool' },
       { key: 'anomaly_detection', label: 'Run anomaly detection', type: 'bool' }, { key: 'large_expense_multiplier', label: 'Flag expenses larger than × the account average', type: 'number' },
       { key: 'duplicate_window_days', label: 'Duplicate detection window (days)', type: 'number' }, { key: 'missing_document_threshold', label: 'Flag missing receipts above (K)', type: 'money' }]} />

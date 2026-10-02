@@ -72,7 +72,7 @@ The app is one Docker image (API + web client) plus PostgreSQL and a persistent 
 | `COOKIE_SECURE`, `TRUST_PROXY` | behind HTTPS | `true` / `1` behind Caddy, Nginx, Render, etc. |
 | `DATABASE_SSL` | managed DBs | `true` if your provider requires SSL |
 | `UPLOAD_DIR`, `BACKUP_DIR` | no | Default `/data/uploads`, `/data/backups` in Docker |
-| `ANTHROPIC_API_KEY`, `AI_MODEL` | no | Platform AI key (or set per company in Admin Center); default model `claude-sonnet-5-5` |
+| `ANTHROPIC_API_KEY`, `AI_MODEL` | no | Platform AI key (or set per company in Admin Center); default model `claude-opus-5-5` |
 | `JOBS_ENABLED` | no | Hourly jobs: notifications, recurring & auto-reversing journals, anomaly scans |
 | `SEED_DEMO` | no | `true` to create the demo company |
 | `AUTO_MIGRATE` | no | `false` to run migrations manually with `npm run migrate` |

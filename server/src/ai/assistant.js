@@ -3,7 +3,7 @@
 // in an answer comes from a tool result (database), and sources are returned with the answer.
 import { pool } from '../db/pool.js';
 import { TOOLS, runTool, today, monthStart, addMonths, addDays } from './tools.js';
-import { aiClient } from './provider.js';
+import { aiClient, createMessage, textOf, stopProblem } from './provider.js';
 import { toCents, fromCents, formatK } from './util.js';
 import { can } from '../services/ledger.js';
 import { audit } from '../lib/audit.js';
@@ -70,7 +70,7 @@ async function builtIn(ctx, message) {
     const rows = r.data.invoices.slice(0, 12).map((i) => `| ${i.number} | ${i.customer} | ${i.due_date} | ${i.days_overdue} | ${K(i.balance_due)} |`).join('\n');
     return { answer: `**${r.data.count} invoice${r.data.count > 1 ? 's are' : ' is'} overdue**, totalling **${K(r.data.total_overdue)}**.\n\n| Invoice | Customer | Due | Days overdue | Balance |\n|---|---|---|---:|---:|\n${rows}`, sources: r.sources, used };
   }
-  if (/(owe us|owing us|receivable|debtors|customers owe)/.test(t)) {
+  if (/(owes? us|owing us|receivable|debtors|customers owe|who owes)/.test(t)) {
     const r = await call('get_receivables', {});
     const tt = r.data.totals;
     const top = r.data.by_customer.slice(0, 5).map((c) => `- ${c.party}: ${K(c.total)}`).join('\n');
@@ -90,11 +90,16 @@ async function builtIn(ctx, message) {
     return { answer: r.data.open_items ? `**${r.data.open_items} item${r.data.open_items > 1 ? 's' : ''} require review** (these are prompts to check, not conclusions):\n\n${r.data.items.slice(0, 15).map((x) => `- **${x.severity}** — ${x.message}`).join('\n')}` : 'Nothing currently requires review.', sources: r.sources, used };
   }
   if (/(why|explain|reason).*(profit|loss|expens|revenue|sales)|compare|versus|vs\.?|than last/.test(t)) {
-    const r = await call('compare_periods', { from: p.from, to: p.to, compare: /last year|previous year/.test(t) ? 'previous_year' : 'previous_period' });
+    // "this month vs last month" compares the current month; with no period named early in a month, explain the last full month.
+    const explicit = /this month|last month|previous month|this year|last year|today|week|days|january|february|march|april|may|june|july|august|september|october|november|december/.test(t);
+    const now = today();
+    const cp = /this month/.test(t) ? { from: monthStart(now), to: now }
+      : !explicit && Number(now.slice(8, 10)) < 10 ? { from: addMonths(monthStart(now), -1), to: monthEnd(addMonths(monthStart(now), -1)) } : p;
+    const r = await call('compare_periods', { from: cp.from, to: cp.to, compare: /last year|previous year/.test(t) && !/last month/.test(t) ? 'previous_year' : 'previous_period' });
     const c = r.data.current, pr = r.data.previous || {};
     const pct = (a, b) => (toCents(b || 0) === 0n ? 'n/a' : `${(((Number(a) - Number(b)) / Math.abs(Number(b))) * 100).toFixed(1)}%`);
     const drivers = r.data.biggest_changes.slice(0, 5).map((d) => `- ${d.account}: ${K(d.previous)} → ${K(d.current)} (${toCents(d.change) >= 0n ? '+' : ''}${K(d.change)})`).join('\n');
-    const dir = toCents(c.net_profit) >= toCents(pr.net_profit || 0) ? 'increased' : 'decreased';
+    const dir = toCents(c.net_profit) > toCents(pr.net_profit || 0) ? 'increased' : toCents(c.net_profit) < toCents(pr.net_profit || 0) ? 'decreased' : 'was unchanged';
     return { answer: `Comparing **${r.data.current_period.from} – ${r.data.current_period.to}** with **${r.data.previous_period.from} – ${r.data.previous_period.to}**:\n\n| | Current | Previous | Change |\n|---|---:|---:|---:|\n| Revenue | ${K(c.revenue)} | ${K(pr.revenue)} | ${pct(c.revenue, pr.revenue)} |\n| Cost of sales | ${K(c.cost_of_sales)} | ${K(pr.cost_of_sales)} | ${pct(c.cost_of_sales, pr.cost_of_sales)} |\n| Expenses | ${K(c.expenses)} | ${K(pr.expenses)} | ${pct(c.expenses, pr.expenses)} |\n| **Net profit** | **${K(c.net_profit)}** | **${K(pr.net_profit)}** | ${pct(c.net_profit, pr.net_profit)} |\n\nNet profit ${dir}. The accounts that moved most:\n${drivers || '- no material changes'}`, sources: r.sources, used };
   }
   if (/cash ?flow/.test(t)) {
@@ -115,14 +120,15 @@ async function builtIn(ctx, message) {
     const big = r.data.largest.slice(0, 5).map((x) => `- ${x.entry_date} ${x.account}: ${x.description} — ${K(x.debit)}`).join('\n');
     return { answer: `**Biggest expenses ${p.label}** (${r.data.period.from} – ${r.data.period.to}):\n\n| Category | Amount | Share |\n|---|---:|---:|\n${cats || '| none | | |'}\n\nLargest single transactions:\n${big || '- none'}`, sources: r.sources, used };
   }
-  m = message.match(/(?:transactions|invoices|payments|history|statement|activity|balance) (?:for|with|of) ([A-Z][\w&.' -]{2,60})/i) || message.match(/(?:customer|supplier)\s+([A-Z][\w&.' -]{2,60})/);
+  m = message.match(/(?:transactions|invoices|payments|history|statement|activity|balance|account) (?:for|with|of) ([A-Z][\w&.' -]{2,60})/i) || message.match(/(?:customer|supplier)\s+([A-Z][\w&.' -]{2,60})/)
+    || message.match(/\b([A-Z][\w&.' -]{2,60}?)(?:'s|’s|s') (?:account|statement|balance|invoices|history)/);
   if (m) {
-    const r = await call('party_transactions', { name: m[1].replace(/[?.]$/, '').trim() });
+    const r = await call('party_transactions', { name: m[1].replace(/[?.]$/, '').replace(/^(?:please\s+)?(?:show|give|display|open|view|get|prepare|send)(?:\s+(?:me|us))?(?:\s+(?:the|a))?\s+/i, '').trim() });
     if (!r.data.found && r.data.found !== undefined) return { answer: r.data.message, sources: [], used };
     const docs = r.data.documents.slice(0, 10).map((d) => `| ${d.number} | ${d.doc_date} | ${d.status} | ${K(d.total)} | ${K(d.balance_due)} |`).join('\n');
     return { answer: `**${r.data.name}** (${r.data.kind}) — ledger balance **${K(r.data.ledger_balance)}** ${r.data.kind === 'customer' ? 'owed to you' : 'owed by you'}.\n\n| Document | Date | Status | Total | Balance |\n|---|---|---|---:|---:|\n${docs || '| none | | | | |'}\n\n${r.data.payments.length} payment(s) recorded.`, sources: r.sources, used };
   }
-  if (/sales|revenue|turnover|sold|income/.test(t) && !/profit/.test(t)) {
+  if (/sales|revenue|turnover|\bsold\b|\bsell\b|income/.test(t) && !/profit/.test(t)) {
     const s = await call('get_financial_summary', { from: p.from, to: p.to });
     let extra = '';
     if (can(ctx, 'view_sales') || can(ctx, 'view_reports')) {
@@ -170,11 +176,12 @@ async function withClaude(ctx, ai, history, message) {
   const messages = [...history, { role: 'user', content: message }];
   const sources = [], used = []; let draft = null, proposal = null;
   for (let step = 0; step < 6; step++) {
-    const resp = await ai.client.messages.create({ model: ai.model, max_tokens: 1500, system: SYSTEM(ctx), tools, messages });
+    const resp = await createMessage(ai, { max_tokens: 16000, system: SYSTEM(ctx), tools, messages });
     if (resp.stop_reason !== 'tool_use') {
-      const answer = resp.content.filter((b) => b.type === 'text').map((b) => b.text).join('\n').trim();
+      const answer = stopProblem(resp) || textOf(resp);
       return { answer, sources, used, draft, proposal };
     }
+    // Keep the full content (including thinking blocks) so the next turn continues the same reasoning.
     messages.push({ role: 'assistant', content: resp.content });
     const results = [];
     for (const b of resp.content.filter((x) => x.type === 'tool_use')) {
